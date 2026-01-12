@@ -1,10 +1,13 @@
 package main
 
+import "github.com/seanfinnessy/pokedexcli/internal/pokeapi"
+
 type cliCommand struct {
 	name string
 	description string
-	callback func() error
+	callback func(*pokeapi.LocationAreaResObject) error
 }
+
 func getCommands() map[string]cliCommand {
 	return map[string]cliCommand{
 		"exit": {
@@ -16,6 +19,11 @@ func getCommands() map[string]cliCommand {
 			name: "help",
 			description: "Displays a help message",
 			callback: commandHelp,
+		},
+		"map": {
+			name: "map",
+			description: "Display all available locations",
+			callback: commandMap,
 		},
 	}
 }

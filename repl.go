@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	pokeapi "github.com/seanfinnessy/pokedexcli/internal/pokeapi"
 )
+
+var config pokeapi.LocationAreaResObject
 
 func startRepl() {
 	// Create a new scanner
@@ -32,17 +35,18 @@ func checkCommand(commandString string) {
 	if !ok {
 		fmt.Println("Unknown command.")
 	} else {
-		command.callback()
+		// callback function, pass addr to config
+		command.callback(&config)
 	}
 }
 
-func commandExit() error {
+func commandExit(config *pokeapi.LocationAreaResObject) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp() error {
+func commandHelp(config *pokeapi.LocationAreaResObject) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage: ")
 	fmt.Println("")
@@ -51,6 +55,29 @@ func commandHelp() error {
 		helpMsg := fmt.Sprintf("%s: %s", value.name, value.description)
 		fmt.Println(helpMsg)
 	}
+	return nil
+}
+
+func commandMap(config *pokeapi.LocationAreaResObject) error {
+	// TODO: getting an issue 
+	var url string
+	if config.Next != nil {		
+		fmt.Println(*config.Next)
+	}
+	fmt.Println(config.Previous)
+
+	if config.Next == nil {
+		url = "https://pokeapi.co/api/v2/location-area/"
+		// config.Next is a pointer to string, so give it the url address
+		config.Next = &url
+	}
+
+	fmt.Println(url)
+	err := pokeapi.GetLocationAreas(url)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	return nil
 }
 
