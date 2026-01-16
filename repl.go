@@ -59,7 +59,7 @@ func commandHelp(config *pokeapi.LocationAreaResObject) error {
 }
 
 func commandMap(config *pokeapi.LocationAreaResObject) error {
-	// TODO: getting an issue 
+	// TODO: getting an issue with not using next urls, is empty
 	var url string
 	if config.Next != nil {		
 		fmt.Println(*config.Next)
