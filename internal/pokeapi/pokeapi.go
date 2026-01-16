@@ -1,24 +1,25 @@
 package pokeapi
 
 import (
-	"net/http"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"net/http"
 )
 
 type Location struct {
 	Name string `json:"name"`
-	URL string `json:"url"`
+	URL  string `json:"url"`
 }
 
 type LocationAreaResObject struct {
-	Previous *string `json:"previous"`
-	Next *string `json:"next"`
-	Results []Location `json:"results"`
+	Previous *string    `json:"previous"`
+	Next     *string    `json:"next"`
+	Results  []Location `json:"results"`
 }
 
 func GetLocationAreas(url string) error {
 	// get request to url
+	fmt.Println("URL using for API: " + url)
 	if len(url) == 0 {
 		return fmt.Errorf("Empty url")
 	}
@@ -35,6 +36,9 @@ func GetLocationAreas(url string) error {
 	if err != nil {
 		return fmt.Errorf("Issue decoding locations json: %w", err)
 	}
+	fmt.Println("Res body -----------------------")
+	fmt.Println(resBody)
+	fmt.Println("Res body end -----------------------")
 
 	// List all locations
 	ListLocations(resBody)
@@ -45,12 +49,13 @@ func ListLocations(responseBody LocationAreaResObject) {
 	// extract locations
 	var results []string
 	locations := responseBody.Results
-	for _, locationObj := range(locations) {
+	for _, locationObj := range locations {
 		results = append(results, locationObj.Name)
 	}
 
-	for _, location := range(locations) {
+	for _, location := range locations {
 		fmt.Println(location.Name)
+		fmt.Println("------------------------------------")
 	}
-	
+
 }

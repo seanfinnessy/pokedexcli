@@ -61,19 +61,19 @@ func commandHelp(config *pokeapi.LocationAreaResObject) error {
 func commandMap(config *pokeapi.LocationAreaResObject) error {
 	// TODO: getting an issue with not using next urls, is empty
 	var url string
-	if config.Next != nil {		
-		fmt.Println(*config.Next)
-	}
-	fmt.Println(config.Previous)
-
+	//fmt.Println(*config)
+	
 	if config.Next == nil {
 		url = "https://pokeapi.co/api/v2/location-area/"
 		// config.Next is a pointer to string, so give it the url address
 		config.Next = &url
 	}
+	if config.Next != nil {	
+		url = *config.Next	
+		fmt.Println("this is config next val ptr: " + *config.Next)
+	}
 
-	fmt.Println(url)
-	err := pokeapi.GetLocationAreas(url)
+	err := pokeapi.GetLocationAreas(*config.Next)
 	if err != nil {
 		fmt.Println(err)
 	}
