@@ -17,35 +17,29 @@ type LocationAreaResObject struct {
 	Results  []Location `json:"results"`
 }
 
-func GetLocationAreas(url string) error {
-	// get request to url
-	fmt.Println("URL using for API: " + url)
+func GetLocationAreas(config *LocationAreaResObject, url string) error {
 	if len(url) == 0 {
 		return fmt.Errorf("Empty url")
 	}
+
 	res, errGet := http.Get(url)
 	if errGet != nil {
 		return fmt.Errorf("Issue retrieving locations: %w", errGet)
 	}
 
-	// decode json response into locations splice
+	// decode json response into config which our main REPL loop uses to navigate
 	decoder := json.NewDecoder(res.Body)
-	var resBody LocationAreaResObject
-
-	err := decoder.Decode(&resBody)
+	err := decoder.Decode(config)
 	if err != nil {
 		return fmt.Errorf("Issue decoding locations json: %w", err)
 	}
-	fmt.Println("Res body -----------------------")
-	fmt.Println(resBody)
-	fmt.Println("Res body end -----------------------")
 
 	// List all locations
-	ListLocations(resBody)
+	ListLocations(config)
 	return nil
 }
 
-func ListLocations(responseBody LocationAreaResObject) {
+func ListLocations(responseBody *LocationAreaResObject) {
 	// extract locations
 	var results []string
 	locations := responseBody.Results

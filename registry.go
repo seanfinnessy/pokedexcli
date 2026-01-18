@@ -22,8 +22,13 @@ func getCommands() map[string]cliCommand {
 		},
 		"map": {
 			name: "map",
-			description: "Display all available locations",
+			description: "Display all available locations. Call again to go to next page.",
 			callback: commandMap,
+		},
+		"mapb": {
+			name: "mapb",
+			description: "Display all available locations. Call to move back a page.",
+			callback: commandMapb,
 		},
 	}
 }

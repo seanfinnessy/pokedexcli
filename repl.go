@@ -59,25 +59,45 @@ func commandHelp(config *pokeapi.LocationAreaResObject) error {
 }
 
 func commandMap(config *pokeapi.LocationAreaResObject) error {
-	// TODO: getting an issue with not using next urls, is empty
 	var url string
-	//fmt.Println(*config)
 	
+	// If next is nil (aka first time using map command). We set it to the first page.
 	if config.Next == nil {
 		url = "https://pokeapi.co/api/v2/location-area/"
-		// config.Next is a pointer to string, so give it the url address
-		config.Next = &url
-	}
-	if config.Next != nil {	
-		url = *config.Next	
-		fmt.Println("this is config next val ptr: " + *config.Next)
 	}
 
-	err := pokeapi.GetLocationAreas(*config.Next)
+	// If not nil, we set the url to search for Next Page.
+	if config.Next != nil {	
+		url = *config.Next	
+	}
+
+	// Call API, pass in the URL to be searched
+	err := pokeapi.GetLocationAreas(config, url)
 	if err != nil {
 		fmt.Println(err)
 	}
+	return nil
+}
 
+func commandMapb(config *pokeapi.LocationAreaResObject) error {
+	var url string
+	
+	// If next is nil (aka first time using map command). We set it to the first page.
+	if config.Previous == nil {
+		fmt.Println("You're on the first page. Use the 'map' command to move forward!")
+		return nil
+	}
+
+	// If not nil, we set the url to search for Next Page.
+	if config.Previous != nil {	
+		url = *config.Previous	
+	}
+
+	// Call API, pass in the URL to be searched
+	err := pokeapi.GetLocationAreas(config, url)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return nil
 }
 
