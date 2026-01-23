@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	pokeapi "github.com/seanfinnessy/pokedexcli/internal/pokeapi"
+	pokecache "github.com/seanfinnessy/pokedexcli/internal/pokecache"
 )
 
 var config pokeapi.LocationAreaResObject
