@@ -1,11 +1,9 @@
 package main
 
-import "github.com/seanfinnessy/pokedexcli/internal/pokeapi"
-
 type cliCommand struct {
 	name string
 	description string
-	callback func(*pokeapi.LocationAreaResObject) error
+	callback func(*AppState) error
 }
 
 func getCommands() map[string]cliCommand {

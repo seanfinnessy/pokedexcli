@@ -1,7 +1,6 @@
 package pokecache
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -24,11 +23,9 @@ func (cache *Cache) reapLoop() {
 	for range ticker.C {
 		// Loop through cache map
 		for key, entry  := range cache.cacheEntry {
-			// If key is createdAt, check the interval
-			if key == "createdAt" {
-				if time.Since(entry.createdAt) > cache.interval {
-					fmt.Println("Clear this!")
-				}
+			// check interval and delete if old enough
+			if time.Since(entry.createdAt) > cache.interval {
+				delete(cache.cacheEntry, key)
 			}
 		}
 	}
@@ -63,7 +60,6 @@ func (cache *Cache) Get(key string) ([]byte, bool) {
 	entry, ok := cache.cacheEntry[key]
 
 	if ok {
-		fmt.Println("Found value : " + string(entry.val))
 		return entry.val, ok
 	}
 

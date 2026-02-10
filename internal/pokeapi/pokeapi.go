@@ -3,6 +3,7 @@ package pokeapi
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -17,25 +18,42 @@ type LocationAreaResObject struct {
 	Results  []Location `json:"results"`
 }
 
-func GetLocationAreas(config *LocationAreaResObject, url string) error {
+type Cache interface{
+	Get(key string) ([]byte, bool)
+	Add(key string, val []byte)
+}
+
+func GetLocationAreas(respObj *LocationAreaResObject, cache Cache, url string) error {
 	if len(url) == 0 {
 		return fmt.Errorf("Empty url")
 	}
 
-	res, errGet := http.Get(url)
-	if errGet != nil {
-		return fmt.Errorf("Issue retrieving locations: %w", errGet)
+	var bytesToUnmarshal []byte
+	if cachedBytes, isCached := cache.Get(url); isCached {
+		bytesToUnmarshal = cachedBytes
+	} else {
+		res, errGet := http.Get(url)
+		if errGet != nil {
+			return fmt.Errorf("Issue retrieving locations: %w", errGet)
+		}
+
+		// decode json response into config which our main REPL loop uses to navigate
+		bodyBytes, errReadAll := io.ReadAll(res.Body)
+		if errReadAll != nil {
+			return fmt.Errorf("Issue reading bytes: %w", errReadAll)
+		}
+		bytesToUnmarshal = bodyBytes
+
+		// add bytes to cache
+		cache.Add(url, bodyBytes)
 	}
 
-	// decode json response into config which our main REPL loop uses to navigate
-	decoder := json.NewDecoder(res.Body)
-	err := decoder.Decode(config)
-	if err != nil {
-		return fmt.Errorf("Issue decoding locations json: %w", err)
+	// unmarshal and display
+	errUnmarshal := json.Unmarshal(bytesToUnmarshal, respObj)
+	if errUnmarshal != nil {
+		return fmt.Errorf("Issue unmarshalling locations json: %w", errUnmarshal)
 	}
-
-	// List all locations
-	ListLocations(config)
+	ListLocations(respObj)
 	return nil
 }
 
@@ -49,7 +67,6 @@ func ListLocations(responseBody *LocationAreaResObject) {
 
 	for _, location := range locations {
 		fmt.Println(location.Name)
-		fmt.Println("------------------------------------")
 	}
 
 }
