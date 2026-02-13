@@ -38,32 +38,36 @@ func startRepl() {
 		// Clean input, grab first word, set command and show user
 		cleanedInput := cleanInput(input)
 
-		// Make sure command exists
+		var command, argument string
 		if len(cleanedInput) > 0 {
-			command := cleanedInput[0]
-			// Verify command
-			checkCommand(command, state)
+			command = cleanedInput[0]
 		}
+		if len(cleanedInput) > 1 {
+			argument = cleanedInput[1]
+		}
+
+		// Verify command
+		checkCommand(command, state, argument)
 	}
 }
 
-func checkCommand(commandString string, appState *AppState) {
+func checkCommand(commandString string, appState *AppState, params ...string) {
 	command, ok := getCommands()[commandString]
 	if !ok {
 		fmt.Println("Unknown command.")
 	} else {
 		// callback function, pass addr to config
-		command.callback(appState)
+		command.callback(appState, params...)
 	}
 }
 
-func commandExit(appState *AppState) error {
+func commandExit(appState *AppState, params ...string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(appState *AppState) error {
+func commandHelp(appState *AppState, params ...string) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage: ")
 	fmt.Println("")
@@ -75,12 +79,12 @@ func commandHelp(appState *AppState) error {
 	return nil
 }
 
-func commandMap(appState *AppState) error {
+func commandMap(appState *AppState, params ...string) error {
 	var url string
 	
 	// If next is nil (aka first time using map command). We set it to the first page.
 	if appState.LocationResponse.Next == nil {
-		url = "https://pokeapi.co/api/v2/location-area/"
+		url = pokeapi.LocationsURL
 	}
 
 	// If not nil, we set the url to search for Next Page.
@@ -96,7 +100,7 @@ func commandMap(appState *AppState) error {
 	return nil
 }
 
-func commandMapb(appState *AppState) error {
+func commandMapb(appState *AppState, params ...string) error {
 	var url string
 	
 	// If next is nil (aka first time using map command). We set it to the first page.
@@ -115,6 +119,25 @@ func commandMapb(appState *AppState) error {
 	if err != nil {
 		fmt.Println(err)
 	}
+	return nil
+}
+
+func commandExplore(appstate *AppState, params ...string) error {
+	if len(params) == 0 {
+		return fmt.Errorf("Must provide a location parameter.")
+	}
+
+	if len(params) > 1 {
+		return fmt.Errorf("Must provide only ONE location parameter.")
+	}
+
+	// Create url string
+	url := pokeapi.LocationsURL + params[0]
+
+	// Call API and return 
+	fmt.Println("Pokemon encountered in " + params[0])
+	pokeapi.GetPokemonInLocation(appstate.Cache, url)
+
 	return nil
 }
 
