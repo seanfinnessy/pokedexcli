@@ -14,7 +14,7 @@ import (
 // Create a struct holding pointer to our resp object and cache
 type AppState struct {
 	LocationResponse *pokeapi.LocationAreaResObject
-	Cache *pokecache.Cache
+	Cache            *pokecache.Cache
 }
 
 func startRepl() {
@@ -22,11 +22,10 @@ func startRepl() {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	// Initialize state as a pointer. We dont want to keep copying it
-	state := &AppState {
+	state := &AppState{
 		LocationResponse: &pokeapi.LocationAreaResObject{},
-    	Cache: pokecache.NewCache(30 * time.Second),
+		Cache:            pokecache.NewCache(30 * time.Second),
 	}
-
 
 	// REPL
 	for {
@@ -41,13 +40,12 @@ func startRepl() {
 		var command, argument string
 		if len(cleanedInput) > 0 {
 			command = cleanedInput[0]
+			checkCommand(command, state)
 		}
 		if len(cleanedInput) > 1 {
 			argument = cleanedInput[1]
+			checkCommand(command, state, argument)
 		}
-
-		// Verify command
-		checkCommand(command, state, argument)
 	}
 }
 
@@ -57,7 +55,9 @@ func checkCommand(commandString string, appState *AppState, params ...string) {
 		fmt.Println("Unknown command.")
 	} else {
 		// callback function, pass addr to config
-		command.callback(appState, params...)
+		if err := command.callback(appState, params...); err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 
@@ -72,7 +72,7 @@ func commandHelp(appState *AppState, params ...string) error {
 	fmt.Println("Usage: ")
 	fmt.Println("")
 
-	for _, value  := range getCommands() {
+	for _, value := range getCommands() {
 		helpMsg := fmt.Sprintf("%s: %s", value.name, value.description)
 		fmt.Println(helpMsg)
 	}
@@ -81,15 +81,15 @@ func commandHelp(appState *AppState, params ...string) error {
 
 func commandMap(appState *AppState, params ...string) error {
 	var url string
-	
+
 	// If next is nil (aka first time using map command). We set it to the first page.
 	if appState.LocationResponse.Next == nil {
 		url = pokeapi.LocationsURL
 	}
 
 	// If not nil, we set the url to search for Next Page.
-	if appState.LocationResponse.Next != nil {	
-		url = *appState.LocationResponse.Next	
+	if appState.LocationResponse.Next != nil {
+		url = *appState.LocationResponse.Next
 	}
 
 	// Call API, pass in the URL to be searched and ptr the response object
@@ -102,7 +102,7 @@ func commandMap(appState *AppState, params ...string) error {
 
 func commandMapb(appState *AppState, params ...string) error {
 	var url string
-	
+
 	// If next is nil (aka first time using map command). We set it to the first page.
 	if appState.LocationResponse.Previous == nil {
 		fmt.Println("You're on the first page. Use the 'map' command to move forward!")
@@ -110,7 +110,7 @@ func commandMapb(appState *AppState, params ...string) error {
 	}
 
 	// If not nil, we set the url to search for Next Page.
-	if appState.LocationResponse.Previous != nil {	
+	if appState.LocationResponse.Previous != nil {
 		url = *appState.LocationResponse.Previous
 	}
 
@@ -134,10 +134,25 @@ func commandExplore(appstate *AppState, params ...string) error {
 	// Create url string
 	url := pokeapi.LocationsURL + params[0]
 
-	// Call API and return 
+	// Call API and return
 	fmt.Println("Pokemon encountered in " + params[0])
 	pokeapi.GetPokemonInLocation(appstate.Cache, url)
 
+	return nil
+}
+
+func commandCatch(appstate *AppState, params ...string) error {
+	if len(params) == 0 {
+		return fmt.Errorf("Must provide a Pokemon.")
+	}
+
+	if len(params) > 1 {
+		return fmt.Errorf("Must provide only ONE Pokemon.")
+	}
+
+	pokemonName := params[0]
+
+	fmt.Printf("Logic for catching %s \n", pokemonName)
 	return nil
 }
 
