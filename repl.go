@@ -24,7 +24,7 @@ func startRepl() {
 	// Initialize state as a pointer. We dont want to keep copying it
 	state := &AppState {
 		LocationResponse: &pokeapi.LocationAreaResObject{},
-    	Cache: pokecache.NewCache(5 * time.Second),
+    	Cache: pokecache.NewCache(30 * time.Second),
 	}
 
 

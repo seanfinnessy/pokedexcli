@@ -41,24 +41,9 @@ func GetPokemonInLocation(cache Cache, url string) error {
 		return fmt.Errorf("Empty url")
 	}
 
-	var bytesToUnmarshal []byte
-	if cachedBytes, isCached := cache.Get(url); isCached {
-		bytesToUnmarshal = cachedBytes
-	} else {
-		res, errGet := http.Get(url)
-		if errGet != nil {
-			return fmt.Errorf("Issue retrieving pokemon from location: %w", errGet)
-		}
-
-		// decode json response into config which our main REPL loop uses to navigate
-		bodyBytes, errReadAll := io.ReadAll(res.Body)
-		if errReadAll != nil {
-			return fmt.Errorf("Issue reading bytes: %w", errReadAll)
-		}
-		bytesToUnmarshal = bodyBytes
-
-		// add bytes to cache
-		cache.Add(url, bodyBytes)
+	bytesToUnmarshal, err := GetBytes(cache, url)
+	if err != nil {
+		return fmt.Errorf("Issue with GetBytes")
 	}
 
 	// unmarshal and display
@@ -68,10 +53,7 @@ func GetPokemonInLocation(cache Cache, url string) error {
 		return fmt.Errorf("Issue unmarshalling pokemon json: %w", errUnmarshal)
 	}
 
-	// List pokemon
-	for _, encounter := range pokemonResObject.PokemonEncounters {
-		fmt.Println("- " + encounter.Pokemon.Name)
-	}
+	ListPokemon(pokemonResObject)
 	return nil
 }
 
@@ -80,24 +62,9 @@ func GetLocationAreas(respObj *LocationAreaResObject, cache Cache, url string) e
 		return fmt.Errorf("Empty url")
 	}
 
-	var bytesToUnmarshal []byte
-	if cachedBytes, isCached := cache.Get(url); isCached {
-		bytesToUnmarshal = cachedBytes
-	} else {
-		res, errGet := http.Get(url)
-		if errGet != nil {
-			return fmt.Errorf("Issue retrieving locations: %w", errGet)
-		}
-
-		// decode json response into config which our main REPL loop uses to navigate
-		bodyBytes, errReadAll := io.ReadAll(res.Body)
-		if errReadAll != nil {
-			return fmt.Errorf("Issue reading bytes: %w", errReadAll)
-		}
-		bytesToUnmarshal = bodyBytes
-
-		// add bytes to cache
-		cache.Add(url, bodyBytes)
+	bytesToUnmarshal, err := GetBytes(cache, url)
+	if err != nil {
+		return fmt.Errorf("Issue with GetBytes")
 	}
 
 	// unmarshal and display
@@ -120,5 +87,36 @@ func ListLocations(responseBody *LocationAreaResObject) {
 	for _, location := range locations {
 		fmt.Println(location.Name)
 	}
+	fmt.Println()
 
+}
+
+func ListPokemon(p *PokemonResObject) {
+	// List pokemon
+	for _, encounter := range p.PokemonEncounters {
+		fmt.Println("- " + encounter.Pokemon.Name)
+	}
+	fmt.Println()
+}
+
+func GetBytes(cache Cache, url string ) ([]byte, error) {
+	var bytesToUnmarshal []byte
+	if cachedBytes, isCached := cache.Get(url); isCached {
+		bytesToUnmarshal = cachedBytes
+	} else {
+		res, errGet := http.Get(url)
+		if errGet != nil {
+			return bytesToUnmarshal, fmt.Errorf("Issue calling API: %s", url)
+		}
+
+		// decode json response into config which our main REPL loop uses to navigate
+		if bodyBytes, errReadAll := io.ReadAll(res.Body); errReadAll == nil {
+			bytesToUnmarshal = bodyBytes
+		}
+
+		// add bytes to cache
+		cache.Add(url, bytesToUnmarshal)
+	}
+
+	return bytesToUnmarshal, nil
 }
