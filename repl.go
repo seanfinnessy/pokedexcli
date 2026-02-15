@@ -11,8 +11,9 @@ import (
 	pokecache "github.com/seanfinnessy/pokedexcli/internal/pokecache"
 )
 
-// Create a struct holding pointer to our resp object and cache
+// Create a struct holding pointer to our resp object and cache and pokedex
 type AppState struct {
+	Pokedex          map[string]pokeapi.Pokemon // Maps are reference types (already contains a pointer to the underlying data)
 	LocationResponse *pokeapi.LocationAreaResObject
 	Cache            *pokecache.Cache
 }
@@ -23,6 +24,7 @@ func startRepl() {
 
 	// Initialize state as a pointer. We dont want to keep copying it
 	state := &AppState{
+		Pokedex: make(map[string]pokeapi.Pokemon),
 		LocationResponse: &pokeapi.LocationAreaResObject{},
 		Cache:            pokecache.NewCache(30 * time.Second),
 	}
@@ -38,13 +40,16 @@ func startRepl() {
 		cleanedInput := cleanInput(input)
 
 		var command, argument string
-		if len(cleanedInput) > 0 {
-			command = cleanedInput[0]
+		command = cleanedInput[0]
+		if len(cleanedInput) == 1 {
 			checkCommand(command, state)
 		}
-		if len(cleanedInput) > 1 {
+		if len(cleanedInput) == 2 {
 			argument = cleanedInput[1]
 			checkCommand(command, state, argument)
+		}
+		if len(cleanedInput) > 2 {
+			fmt.Println("Too many inputs!")
 		}
 	}
 }
@@ -95,7 +100,7 @@ func commandMap(appState *AppState, params ...string) error {
 	// Call API, pass in the URL to be searched and ptr the response object
 	err := pokeapi.GetLocationAreas(appState.LocationResponse, appState.Cache, url)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 	return nil
 }
@@ -117,7 +122,7 @@ func commandMapb(appState *AppState, params ...string) error {
 	// Call API, pass in the URL to be searched
 	err := pokeapi.GetLocationAreas(appState.LocationResponse, appState.Cache, url)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 	return nil
 }
@@ -136,7 +141,9 @@ func commandExplore(appstate *AppState, params ...string) error {
 
 	// Call API and return
 	fmt.Println("Pokemon encountered in " + params[0])
-	pokeapi.GetPokemonInLocation(appstate.Cache, url)
+	if err := pokeapi.GetPokemonInLocation(appstate.Cache, url); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -151,9 +158,61 @@ func commandCatch(appstate *AppState, params ...string) error {
 	}
 
 	pokemonName := params[0]
-
-	fmt.Printf("Logic for catching %s \n", pokemonName)
+	url := pokeapi.PokemonURL + pokemonName
+	if err := pokeapi.GetPokemonStats(appstate.Cache, appstate.Pokedex, url); err != nil {
+		return err
+	}
 	return nil
+}
+
+func commandPokedex(appstate *AppState, params ...string) error {
+	if len(appstate.Pokedex) == 0 {
+		return fmt.Errorf("You do not have any Pokemon in your Pokedex")
+	}
+	fmt.Println("Your Pokedex:")
+	for _, pokemon := range(appstate.Pokedex) {
+		fmt.Printf("   -%s", pokemon.Name)
+		fmt.Println()
+	}
+	return nil
+}
+
+func commandInspect(appstate *AppState, params ...string) error {
+	if len(params) == 0 {
+		return fmt.Errorf("Must provide a Pokemon.")
+	}
+
+	if len(params) > 1 {
+		return fmt.Errorf("Must provide only ONE Pokemon.")
+	}
+
+	pokemonName := params[0]
+
+	foundPokemon, ok := appstate.Pokedex[pokemonName]
+	if !ok {
+		return fmt.Errorf("you have not caught that pokemon")
+	}
+	PokedexInspection(foundPokemon)
+	return nil
+}
+
+func PokedexInspection(foundPokemon pokeapi.Pokemon) {
+	fmt.Printf("Name: %s", foundPokemon.Name)
+	fmt.Println()
+	fmt.Printf("Height: %d", foundPokemon.Height)
+	fmt.Println()
+	fmt.Printf("Weight: %d", foundPokemon.Weight)
+	fmt.Println()
+	fmt.Println("Stats:")
+	for _, pokemonStat := range foundPokemon.Stats {
+		fmt.Printf("   -%s: %d", pokemonStat.Stat.Name, pokemonStat.BaseStatValue)
+		fmt.Println()
+	}
+	fmt.Println("Types:")
+	for _, pokemonType := range foundPokemon.Types {
+		fmt.Printf("   - %s", pokemonType.Type.Name)
+		fmt.Println()
+	}
 }
 
 func cleanInput(text string) []string {

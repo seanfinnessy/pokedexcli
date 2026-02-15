@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/rand"
 	"net/http"
 )
 
@@ -26,14 +28,71 @@ type PokemonEncounter struct {
 	Pokemon Pokemon `json:"pokemon"`
 }
 
+type PokemonStat struct {
+	BaseStatValue int `json:"base_stat"`
+	Stat Name `json:"stat"`
+}
+
+type PokemonType struct {
+	Type Name `json:"type"`
+}
+
+type Name struct {
+	Name string `json:"name"`
+}
+
+
 type Pokemon struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
+	BaseExperience int `json:"base_experience"`
+	Height int `json:"height"`
+	Weight int `json:"weight"`
+	Stats []PokemonStat `json:"stats"`
+	Types []PokemonType `json:"types"`
+	
 }
 
 type Cache interface {
 	Get(key string) ([]byte, bool)
 	Add(key string, val []byte)
+}
+
+
+
+func GetPokemonStats(cache Cache, pokedex map[string]Pokemon,  url string) error {
+	if len(url) == 0 {
+		return fmt.Errorf("Empty url")
+	}
+
+	bytesToUnmarshal, err := GetBytes(cache, url)
+	if err != nil {
+		return err
+	}
+
+	var pokemonResponse *Pokemon
+	if err := json.Unmarshal(bytesToUnmarshal, &pokemonResponse); err != nil {
+		return fmt.Errorf("Error unmarshalling pokemon bytes: %w." ,err )
+	}
+
+
+	CatchPokemon(pokemonResponse, pokedex)
+	return nil
+
+}
+
+func CatchPokemon(pokemonResponse *Pokemon, pokedex map[string]Pokemon) {
+	name := pokemonResponse.Name
+	fmt.Println("Throwing a Pokeball at " + name + "...")
+	baseExperience := float64(pokemonResponse.BaseExperience)
+	probabilityOfCatch := math.Pow((1.0 - (baseExperience / 608.0)), 3)
+	if rand.Float64() < probabilityOfCatch {
+		fmt.Println(name + " was caught!")
+		fmt.Println("You may now inspect it with the inspect command.")
+		pokedex[name] = *pokemonResponse
+	} else {
+		fmt.Println(name + " escaped!")
+	}
 }
 
 func GetPokemonInLocation(cache Cache, url string) error {
@@ -43,7 +102,7 @@ func GetPokemonInLocation(cache Cache, url string) error {
 
 	bytesToUnmarshal, err := GetBytes(cache, url)
 	if err != nil {
-		return fmt.Errorf("Issue with GetBytes")
+		return err
 	}
 
 	// unmarshal and display
@@ -64,7 +123,7 @@ func GetLocationAreas(respObj *LocationAreaResObject, cache Cache, url string) e
 
 	bytesToUnmarshal, err := GetBytes(cache, url)
 	if err != nil {
-		return fmt.Errorf("Issue with GetBytes")
+		return err
 	}
 
 	// unmarshal and display
@@ -105,7 +164,7 @@ func GetBytes(cache Cache, url string ) ([]byte, error) {
 		bytesToUnmarshal = cachedBytes
 	} else {
 		res, errGet := http.Get(url)
-		if errGet != nil {
+		if errGet != nil || res.StatusCode != 200 {
 			return bytesToUnmarshal, fmt.Errorf("Issue calling API: %s", url)
 		}
 
